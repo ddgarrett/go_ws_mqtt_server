@@ -189,8 +189,10 @@ func (c *Client) connect_mqtt() {
 	c.subscribe(topics)
 }
 
+// Handle message published to subscribed topic
+// Send message to the websocket client
 func (c *Client) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
-	message := fmt.Sprintf("rcv %s %s\n", msg.Topic(), msg.Payload())
+	message := fmt.Sprintf("rcv %s %s", msg.Topic(), msg.Payload())
 	fmt.Println(message)
 	c.send <- []byte(message)
 }
