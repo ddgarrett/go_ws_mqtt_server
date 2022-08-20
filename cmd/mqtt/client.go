@@ -6,10 +6,12 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/websocket"
 )
 
@@ -46,6 +48,9 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	send chan []byte
+
+	// MQTT info
+	mqttClient mqtt.Client
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -57,6 +62,7 @@ func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
+		c.mqttClient.Disconnect(250)
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -84,6 +90,7 @@ func (c *Client) writePump() {
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
+		c.mqttClient.Disconnect(250)
 	}()
 	for {
 		select {
@@ -127,11 +134,88 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{hub: hub, conn: conn,
+		send: make(chan []byte, 256), mqttClient: nil}
+
+	client.connect_mqtt()
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+}
+
+/*
+	MQTT Additions
+
+*/
+
+func (c *Client) connect_mqtt() {
+	_, mqttSecrets := readSecrets()
+	broker := mqttSecrets["server"].(string)
+	port := int((mqttSecrets["port"]).(float64))
+	topics := []string{"#"}
+
+	opts := mqtt.NewClientOptions()
+
+	if username, ok := mqttSecrets["username"]; ok {
+		// tls protocol - encrypted
+		opts.AddBroker(fmt.Sprintf("tls://%s:%d", broker, port))
+		opts.SetUsername(username.(string))
+		opts.SetPassword((mqttSecrets["password"]).(string))
+	} else {
+		// tcp protocol - unencrypted
+		opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
+	}
+
+	cid := getRandomClientId()
+	fmt.Printf("using client id: %s\n", cid)
+	opts.SetClientID(cid) // set a name as you desire
+
+	// configure callback handlers
+	opts.SetDefaultPublishHandler(c.messagePubHandler)
+	opts.OnConnect = connectHandler
+	opts.OnConnectionLost = connectLostHandler
+
+	// create the client using the options above
+	c.mqttClient = mqtt.NewClient(opts)
+
+	// throw an error if the connection isn't successfull
+	if token := c.mqttClient.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+
+	c.subscribe(topics)
+}
+
+func (c *Client) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
+	message := fmt.Sprintf("rcv %s %s\n", msg.Topic(), msg.Payload())
+	fmt.Println(message)
+	c.send <- []byte(message)
+}
+
+// upon connection to the client, this is called
+var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
+	fmt.Println("Connected ")
+}
+
+// this is called when the connection to the client is lost, it prints "Connection lost" and the corresponding error
+var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
+	fmt.Printf("Connection lost: %v", err)
+}
+
+func (c *Client) subscribe(topics []string) {
+	// subscribe list of topics
+	for _, topic := range topics {
+		token := c.mqttClient.Subscribe(topic, 1, nil)
+		token.Wait()
+		// Check for errors during subscribe
+		if token.Error() != nil {
+			fmt.Printf("Failed to subscribe to topic %s \n", topic)
+			panic(token.Error())
+		}
+		fmt.Printf("Subscribed to topic: %s \n", topic)
+	}
+
 }

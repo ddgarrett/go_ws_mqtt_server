@@ -4,12 +4,6 @@
 
 package main
 
-import (
-	"fmt"
-
-	mqtt "github.com/eclipse/paho.mqtt.golang"
-)
-
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -24,9 +18,6 @@ type Hub struct {
 
 	// Unregister requests from clients.
 	unregister chan *Client
-
-	// MQTT info
-	mqttClient mqtt.Client
 }
 
 func newHub() *Hub {
@@ -36,16 +27,10 @@ func newHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		mqttClient: nil,
 	}
 }
 
 func (h *Hub) run() {
-	if h.mqttClient == nil {
-		h.connect_mqtt()
-		defer h.disconnect()
-	}
-
 	for {
 		select {
 		case client := <-h.register:
@@ -66,91 +51,4 @@ func (h *Hub) run() {
 			}
 		}
 	}
-}
-func (h *Hub) connect_mqtt() {
-	_, mqttSecrets := readSecrets()
-	broker := mqttSecrets["server"].(string)
-	port := int((mqttSecrets["port"]).(float64))
-	topics := []string{"#"}
-
-	server := ""
-	opts := mqtt.NewClientOptions()
-
-	if username, ok := mqttSecrets["username"]; ok {
-		opts.SetUsername(username.(string))
-		opts.SetPassword((mqttSecrets["password"]).(string))
-		server = fmt.Sprintf("tls://%s:%d", broker, port)
-	} else {
-		server = fmt.Sprintf("tcp://%s:%d", broker, port)
-	}
-
-	opts.AddBroker(server)
-	cid := getRandomClientId()
-	fmt.Printf("using client id: %s\n", cid)
-	opts.SetClientID(cid) // set a name as you desire
-
-	// configure callback handlers
-	opts.SetDefaultPublishHandler(h.messagePubHandler)
-	opts.OnConnect = connectHandler
-	opts.OnConnectionLost = connectLostHandler
-	// create the client using the options above
-	h.mqttClient = mqtt.NewClient(opts)
-	// throw an error if the connection isn't successfull
-	if token := h.mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		panic(token.Error())
-	}
-
-	// defer disconnect(client)
-
-	subscribe(h.mqttClient, topics)
-}
-
-func (h *Hub) disconnect() {
-	fmt.Print("disconnecting mqtt client\n")
-	h.mqttClient.Disconnect(250)
-}
-
-func (h *Hub) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
-	// fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
-	// fmt.Printf("%s:%s\n", msg.Topic(), msg.Payload())
-
-	message := fmt.Sprintf("rcv %s %s\n", msg.Topic(), msg.Payload())
-	fmt.Println(message)
-
-	h.broadcast <- []byte(message)
-	/*
-		for client := range h.clients {
-			select {
-			case client.send <- []byte(message):
-			default:
-				close(client.send)
-				delete(h.clients, client)
-			}
-		}
-	*/
-}
-
-// upon connection to the client, this is called
-var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
-	fmt.Println("Connected")
-}
-
-// this is called when the connection to the client is lost, it prints "Connection lost" and the corresponding error
-var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
-	fmt.Printf("Connection lost: %v", err)
-}
-
-func subscribe(client mqtt.Client, topics []string) {
-	// subscribe list of topics
-	for _, topic := range topics {
-		token := client.Subscribe(topic, 1, nil)
-		token.Wait()
-		// Check for errors during subscribe
-		if token.Error() != nil {
-			fmt.Printf("Failed to subscribe to topic %s \n", topic)
-			panic(token.Error())
-		}
-		fmt.Printf("Subscribed to topic: %s \n", topic)
-	}
-
 }
