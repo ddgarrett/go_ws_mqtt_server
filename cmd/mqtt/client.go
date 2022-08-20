@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -76,7 +77,34 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+		msgResponse := c.processWsMsg(string(message))
+		if msgResponse != "" {
+			c.send <- []byte(msgResponse)
+		}
+		// c.hub.broadcast <- message
+	}
+}
+
+// Process a websocket message
+func (c *Client) processWsMsg(msg string) string {
+	msg = strings.TrimSpace(msg)
+	cmd := ""
+	params := ""
+
+	i := strings.Index(msg, " ")
+	if i < 0 {
+		cmd = msg
+	} else {
+		cmd = msg[:i]
+		params = msg[i+1:]
+	}
+
+	switch cmd {
+	case "sub":
+		c.subscribe(params)
+		return fmt.Sprintf("info subscribed to %s", params)
+	default:
+		return "err unrecognized command"
 	}
 }
 
@@ -155,7 +183,7 @@ func (c *Client) connect_mqtt() {
 	_, mqttSecrets := readSecrets()
 	broker := mqttSecrets["server"].(string)
 	port := int((mqttSecrets["port"]).(float64))
-	topics := []string{"#"}
+	// topics := []string{"#"}
 
 	opts := mqtt.NewClientOptions()
 
@@ -186,7 +214,7 @@ func (c *Client) connect_mqtt() {
 		panic(token.Error())
 	}
 
-	c.subscribe(topics)
+	// c.subscribe(topics)
 }
 
 // Handle message published to subscribed topic
@@ -207,17 +235,16 @@ var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err
 	fmt.Printf("Connection lost: %v", err)
 }
 
-func (c *Client) subscribe(topics []string) {
+func (c *Client) subscribe(topic string) {
 	// subscribe list of topics
-	for _, topic := range topics {
-		token := c.mqttClient.Subscribe(topic, 1, nil)
-		token.Wait()
-		// Check for errors during subscribe
-		if token.Error() != nil {
-			fmt.Printf("Failed to subscribe to topic %s \n", topic)
-			panic(token.Error())
-		}
-		fmt.Printf("Subscribed to topic: %s \n", topic)
+
+	token := c.mqttClient.Subscribe(topic, 1, nil)
+	token.Wait()
+	// Check for errors during subscribe
+	if token.Error() != nil {
+		fmt.Printf("Failed to subscribe to topic %s \n", topic)
+		panic(token.Error())
 	}
+	fmt.Printf("Subscribed to topic: %s \n", topic)
 
 }
