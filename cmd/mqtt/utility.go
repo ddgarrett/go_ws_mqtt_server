@@ -1,19 +1,19 @@
 /*
-	Test json parsing logic
+	Utility functions
 */
 
 package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 )
 
 var fileName = "../../secrets.json"
-var wifiEnv = "wifi_esp"
-var mqttEnv = "mqtt_docker_esp"
+var wifiEnv = "home"
+var mqttEnv = "hivemq" // "home_acer" // "hivemq"
 
+/*
 func printDict(dict map[string]interface{}) {
 	b, err := json.MarshalIndent(dict, "", "  ")
 	if err != nil {
@@ -22,6 +22,7 @@ func printDict(dict map[string]interface{}) {
 
 	fmt.Println(string(b))
 }
+*/
 
 // GetSubdict returns a dictionary
 // which is embedded within another dictionary
@@ -41,13 +42,11 @@ func readSecrets() (wifi map[string]interface{}, mqtt map[string]interface{}) {
 		panic(err)
 	}
 
-	/*
-		fmt.Println("wifi: ")
-		printDict(GetSubdict(GetSubdict(data, "wifi"), wifiEnv))
+	// fmt.Println("wifi: ")
+	// printDict(GetSubdict(GetSubdict(data, "wifi"), wifiEnv))
 
-		fmt.Println("mqtt: ")
-		printDict(GetSubdict(GetSubdict(data, "mqtt"), mqttEnv))
-	*/
+	// fmt.Println("mqtt: ")
+	// printDict(GetSubdict(GetSubdict(data, "mqtt"), mqttEnv))
 
 	return GetSubdict(GetSubdict(data, "wifi"), wifiEnv),
 		GetSubdict(GetSubdict(data, "mqtt"), mqttEnv)
