@@ -5,6 +5,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"os"
 )
@@ -12,6 +13,18 @@ import (
 var fileName = "../../secrets.json"
 var wifiEnv = "home"
 var mqttEnv = "hivemq" // "home_acer" // "hivemq"
+
+// getRandomClientId returns randomized ClientId.
+func getRandomClientId() string {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, 12)
+	rand.Read(bytes)
+	for i, b := range bytes {
+		bytes[i] = alphanum[b%byte(len(alphanum))]
+	}
+	// client id max length 24 in version <= V3.1
+	return "GoWsMqtt-" + string(bytes)
+}
 
 /*
 func printDict(dict map[string]interface{}) {

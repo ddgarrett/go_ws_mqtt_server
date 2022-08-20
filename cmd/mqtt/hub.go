@@ -85,7 +85,9 @@ func (h *Hub) connect_mqtt() {
 	}
 
 	opts.AddBroker(server)
-	opts.SetClientID("go_ws_mqtt_v01") // set a name as you desire
+	cid := getRandomClientId()
+	fmt.Printf("using client id: %s\n", cid)
+	opts.SetClientID(cid) // set a name as you desire
 
 	// configure callback handlers
 	opts.SetDefaultPublishHandler(h.messagePubHandler)
@@ -107,14 +109,6 @@ func (h *Hub) disconnect() {
 	fmt.Print("disconnecting mqtt client\n")
 	h.mqttClient.Disconnect(250)
 }
-
-// this callback triggers when a message is received, it then prints the message (in the payload) and topic
-/*
-var messagePubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	// fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
-	fmt.Printf("%s:%s\n", msg.Topic(), msg.Payload())
-}
-*/
 
 func (h *Hub) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 	// fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
