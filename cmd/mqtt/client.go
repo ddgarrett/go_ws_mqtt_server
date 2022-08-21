@@ -103,6 +103,8 @@ func (c *Client) processWsMsg(msg string) string {
 	case "sub":
 		c.subscribe(params)
 		return fmt.Sprintf("info subscribed to %s", params)
+	case "pub":
+		return c.publish(params, 1, false)
 	default:
 		return "err unrecognized command"
 	}
@@ -247,4 +249,33 @@ func (c *Client) subscribe(topic string) {
 	}
 	fmt.Printf("Subscribed to topic: %s \n", topic)
 
+}
+
+// Publish a message to a specified topic.
+// msg contains a topic, followed by a space, followed by a message.
+// Assumes topic does not contain spaces.
+func (c *Client) publish(msg string, qos byte, retain bool) string {
+
+	msg = strings.TrimSpace(msg)
+	i := strings.Index(msg, " ")
+
+	if i < 0 {
+		return "publish message not found"
+	}
+
+	topic := msg[:i]
+	msg = msg[i+1:]
+
+	returnMsg := fmt.Sprintf("pub %s %s", topic, msg)
+
+	token := c.mqttClient.Publish(topic, 1, false, []byte(msg))
+	token.Wait()
+
+	// Check for errors during publish
+	if token.Error() != nil {
+		fmt.Printf("Failed: %s \n", returnMsg)
+		panic(token.Error())
+	}
+	fmt.Println(returnMsg)
+	return returnMsg
 }
