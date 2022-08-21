@@ -16,14 +16,14 @@ var mqttEnv = "hivemq" // "home_acer" // "hivemq"
 
 // getRandomClientId returns randomized ClientId.
 func getRandomClientId() string {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	const alphanum = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	var bytes = make([]byte, 12)
 	rand.Read(bytes)
 	for i, b := range bytes {
 		bytes[i] = alphanum[b%byte(len(alphanum))]
 	}
 	// client id max length 24 in version <= V3.1
-	return "GoWsMqtt-" + string(bytes)
+	return "GoWsMqtt" + string(bytes)
 }
 
 /*
