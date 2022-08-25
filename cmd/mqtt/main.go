@@ -6,6 +6,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -27,6 +28,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+	fmt.Printf("running websocket MQTT server at: %s\n", *addr)
 	hub := newHub()
 	go hub.run()
 	http.HandleFunc("/", serveHome)
