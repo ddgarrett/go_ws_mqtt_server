@@ -11,8 +11,8 @@ import (
 )
 
 var fileName = "../../secrets.json"
-var wifiEnv = "home"
-var mqttEnv = "hivemq" // "home_acer" // "hivemq"
+var wifiEnv = "pixel"  // "home"  // "esp" // "pixel"
+var mqttEnv = "hivemq" // "home_acer" // "hivemq" // "esp"
 
 // getRandomClientId returns randomized ClientId.
 func getRandomClientId() string {
