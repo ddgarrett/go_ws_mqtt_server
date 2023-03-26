@@ -8,13 +8,13 @@ Uses [Paho MQTT for Go](github.com/eclipse/paho.mqtt.golang) and [Gorrilla Webso
 
 To use, execute using the following:
 
-```client.exe```
+```.../cmd/mqtt/.exe```
 
 This will start a server running on port 8080 and use the MQTT broker "hivemq". The broker, "hivemq", must be defined in a secrets.json file. See example below. 
 
 The port and MQTT broker may be overridden:
 
-```client.exe -addr ":8081" -mqtt "rpi400_mqtt"```
+```.../cmd/mqtt/mqtt.exe -addr ":8081" -mqtt "rpi400_mqtt"```
 
 This example would start a server running on port 8081, accessing the MQTT broker defined in "rpi400_mqtt" in the example `secrets.json` file below.
 
