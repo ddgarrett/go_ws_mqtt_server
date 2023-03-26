@@ -37,12 +37,19 @@ window.onload = function () {
             appendLog(item);
         };
         conn.onmessage = function (evt) {
-            var messages = evt.data.split('\n');
+            var message = evt.data.replace(/\n/g,"↵")
+            var item = document.createElement("div");
+            item.innerText = (new Date()).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }) + " " + message;
+            appendLog(item);
+            //var messages = evt.data.split('\n');
+            
+            /*
             for (var i = 0; i < messages.length; i++) {
                 var item = document.createElement("div");
                 item.innerText = (new Date()).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }) + " " + messages[i];
                 appendLog(item);
             }
+            */
         };
     } else {
         var item = document.createElement("div");
