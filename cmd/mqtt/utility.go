@@ -11,8 +11,9 @@ import (
 )
 
 var fileName = "../../secrets.json"
-var wifiEnv = "pixel"  // "home"  // "esp" // "pixel"
-var mqttEnv = "hivemq" // "home_acer" // "hivemq" // "esp"
+
+// var wifiEnv = "pixel" // "home"  // "esp" // "pixel"
+// var mqttEnv = "hivemq" // "home_acer" // "hivemq" // "esp"
 
 // getRandomClientId returns randomized ClientId.
 func getRandomClientId() string {
@@ -43,7 +44,9 @@ func GetSubdict(dict map[string]interface{}, subdictName string) map[string]inte
 	return dict[subdictName].(map[string]interface{})
 }
 
-func readSecrets() (wifi map[string]interface{}, mqtt map[string]interface{}) {
+// readSecrets reads the MQTT Broker parameters for
+// the MQTT Broker specified in mqttEnv (see main.go flags)
+func readSecrets() (mqtt map[string]interface{}) {
 	fileBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(err)
@@ -61,6 +64,8 @@ func readSecrets() (wifi map[string]interface{}, mqtt map[string]interface{}) {
 	// fmt.Println("mqtt: ")
 	// printDict(GetSubdict(GetSubdict(data, "mqtt"), mqttEnv))
 
-	return GetSubdict(GetSubdict(data, "wifi"), wifiEnv),
-		GetSubdict(GetSubdict(data, "mqtt"), mqttEnv)
+	// return GetSubdict(GetSubdict(data, "wifi"), wifiEnv),
+	// 	GetSubdict(GetSubdict(data, "mqtt"), mqttEnv)
+
+	return GetSubdict(GetSubdict(data, "mqtt"), mqttEnv)
 }

@@ -182,7 +182,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 */
 
 func (c *Client) connect_mqtt() {
-	_, mqttSecrets := readSecrets()
+	mqttSecrets := readSecrets()
 	broker := mqttSecrets["server"].(string)
 	port := int((mqttSecrets["port"]).(float64))
 	// topics := []string{"#"}
